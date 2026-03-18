@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src')));
 
-const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `Sos Mía, la asistente virtual de TiendaRopa, una tienda de ropa online. Tu único rol es ayudar a los clientes con consultas relacionadas a productos, envíos y devoluciones. Respondé siempre en español, con tuteo, tono amigable pero profesional.
 
@@ -65,7 +65,7 @@ app.post('/chat', async (req, res) => {
 
   try {
     const response = await client.messages.create({
-      model: 'claude-haiku-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: history,

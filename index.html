@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mía — Asistente TiendaRopa</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;600;800&display=swap');
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --black: #0a0a0a;
+      --white: #ffffff;
+      --gray-50: #f9f9f9;
+      --gray-100: #f0f0f0;
+      --gray-200: #e0e0e0;
+      --gray-400: #9e9e9e;
+      --gray-600: #616161;
+      --accent: #1a1a1a;
+      --bubble-user: #1a1a1a;
+      --bubble-bot: #f0f0f0;
+      --green: #22c55e;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Manrope', sans-serif;
+      background: var(--gray-50);
+    }
+
+    /* ── Layout ── */
+    .chat-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 780px;
+      margin: 0 auto;
+      background: var(--white);
+      box-shadow: 0 0 60px rgba(0,0,0,0.06);
+    }
+
+    /* ── Header ── */
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--gray-100);
+      background: var(--white);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .avatar svg { width: 22px; height: 22px; }
+    .header-info { flex: 1; }
+    .header-name {
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: var(--black);
+      letter-spacing: -0.01em;
+    }
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--gray-400);
+      margin-top: 2px;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+    .header-brand {
+      font-weight: 800;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gray-400);
+    }
+
+    /* ── Messages ── */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-track { background: transparent; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
+
+    /* message row */
+    .msg-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: msgIn 0.3s ease forwards;
+    }
+    .msg-row.user { flex-direction: row-reverse; }
+    @keyframes msgIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: var(--gray-600);
+    }
+    .msg-row.user .msg-avatar { background: var(--black); color: var(--white); }
+
+    .bubble {
+      max-width: 68%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      font-weight: 400;
+      color: var(--black);
+      background: var(--bubble-bot);
+    }
+    .msg-row.user .bubble {
+      background: var(--bubble-user);
+      color: var(--white);
+      border-bottom-right-radius: 4px;
+    }
+    .msg-row.bot .bubble {
+      border-bottom-left-radius: 4px;
+    }
+
+    /* timestamp */
+    .msg-time {
+      font-size: 0.65rem;
+      color: var(--gray-400);
+      font-weight: 200;
+      padding: 0 4px;
+      align-self: flex-end;
+      flex-shrink: 0;
+    }
+
+    /* typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      height: 0;
+      overflow: hidden;
+      transition: opacity 0.2s, height 0.2s;
+    }
+    .typing-indicator.visible {
+      opacity: 1;
+      height: 44px;
+    }
+    .typing-dots {
+      background: var(--bubble-bot);
+      padding: 12px 16px;
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--gray-400);
+      animation: bounce 1.2s ease infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.15s; }
+    .dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce {
+      0%,60%,100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* welcome chips */
+    .quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .chip {
+      padding: 6px 14px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--white);
+    }
+    .chip:hover {
+      border-color: var(--black);
+      color: var(--black);
+      background: var(--gray-50);
+    }
+
+    /* ── Input ── */
+    .chat-input-area {
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--gray-100);
+      background: var(--white);
+    }
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--gray-50);
+      border: 1.5px solid var(--gray-200);
+      border-radius: 14px;
+      padding: 10px 14px;
+      transition: border-color 0.2s;
+    }
+    .input-row:focus-within {
+      border-color: var(--black);
+    }
+    .chat-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: var(--black);
+      outline: none;
+      resize: none;
+      max-height: 120px;
+      line-height: 1.5;
+    }
+    .chat-input::placeholder { color: var(--gray-400); }
+    .send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--black);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .send-btn:hover { background: #333; transform: scale(1.05); }
+    .send-btn:disabled { background: var(--gray-200); cursor: not-allowed; transform: none; }
+    .send-btn svg { width: 16px; height: 16px; }
+    .input-hint {
+      font-size: 0.68rem;
+      color: var(--gray-400);
+      margin-top: 8px;
+      text-align: center;
+      font-weight: 200;
+    }
+
+    /* ── Error toast ── */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #ef4444;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-wrapper">
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+    <div class="header-info">
+      <div class="header-name">Mía</div>
+      <div class="header-status">
+        <div class="status-dot"></div>
+        En línea ahora
+      </div>
+    </div>
+    <div class="header-brand">TiendaRopa</div>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-messages" id="messages">
+    <!-- Bienvenida -->
+    <div class="msg-row bot" id="welcome-msg">
+      <div class="msg-avatar">M</div>
+      <div>
+        <div class="bubble">
+          ¡Hola! 👋 Soy <strong>Mía</strong>, tu asistente de TiendaRopa. Estoy acá para ayudarte con todo lo que necesites sobre productos, envíos y devoluciones. ¿En qué te puedo ayudar hoy?
+        </div>
+        <div class="quick-chips" id="chips">
+          <span class="chip" onclick="sendChip(this)">¿Hacen envíos?</span>
+          <span class="chip" onclick="sendChip(this)">Política de devoluciones</span>
+          <span class="chip" onclick="sendChip(this)">¿Cuánto tarda el envío?</span>
+          <span class="chip" onclick="sendChip(this)">Tengo un problema con mi pedido</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Typing indicator -->
+    <div class="typing-indicator" id="typing">
+      <div class="msg-avatar">M</div>
+      <div class="typing-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="chat-input-area">
+    <div class="input-row">
+      <textarea
+        class="chat-input"
+        id="input"
+        placeholder="Escribí tu consulta..."
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <p class="input-hint">Mía puede cometer errores. Para casos urgentes contactá a soporte@tiendaropa.com</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Session ID único por visita
+  const sessionId = 'sess_' + Math.random().toString(36).slice(2, 10);
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('sendBtn');
+  const messagesEl = document.getElementById('messages');
+  const typingEl = document.getElementById('typing');
+  let isLoading = false;
+
+  // ── Habilitar/deshabilitar botón según input
+  input.addEventListener('input', () => {
+    sendBtn.disabled = input.value.trim() === '' || isLoading;
+  });
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!sendBtn.disabled) sendMessage();
+    }
+  }
+
+  function getTime() {
+    return new Date().toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function appendMessage(text, role) {
+    const row = document.createElement('div');
+    row.className = `msg-row ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = role === 'user' ? 'Vos' : 'M';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = text.replace(/\n/g, '<br>');
+
+    const time = document.createElement('div');
+    time.className = 'msg-time';
+    time.textContent = getTime();
+
+    if (role === 'user') {
+      row.appendChild(time);
+      row.appendChild(bubble);
+      row.appendChild(avatar);
+    } else {
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      row.appendChild(time);
+    }
+
+    // Insertar antes del typing indicator
+    messagesEl.insertBefore(row, typingEl);
+    scrollToBottom();
+  }
+
+  function scrollToBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function showTyping() {
+    typingEl.classList.add('visible');
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    typingEl.classList.remove('visible');
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+
+  function removeChips() {
+    const chips = document.getElementById('chips');
+    if (chips) chips.remove();
+  }
+
+  function sendChip(el) {
+    input.value = el.textContent;
+    sendMessage();
+  }
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text || isLoading) return;
+
+    removeChips();
+    appendMessage(text, 'user');
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+    isLoading = true;
+    showTyping();
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, sessionId }),
+      });
+
+      const data = await res.json();
+      hideTyping();
+
+      if (res.ok) {
+        appendMessage(data.reply, 'bot');
+      } else {
+        appendMessage('Ups, algo salió mal. Intentá de nuevo.', 'bot');
+        showToast(data.error || 'Error desconocido');
+      }
+    } catch (err) {
+      hideTyping();
+      appendMessage('No se pudo conectar con el servidor. ¿Está corriendo?', 'bot');
+      showToast('Error de conexión');
+    }
+
+    isLoading = false;
+    sendBtn.disabled = input.value.trim() === '';
+    input.focus();
+  }
+</script>
+</body>
+</html>
